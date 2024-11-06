@@ -55,6 +55,8 @@
 #  define MNVG_INVALID_TARGET
 #endif
 
+#define MNVG_GET_CONTEXT(ctx) (__bridge MNVGcontext*)(*(void**)ctx)
+
 typedef enum MNVGvertexInputIndex {
     MNVG_VERTEX_INPUT_INDEX_VERTICES = 0,
     MNVG_VERTEX_INPUT_INDEX_VIEW_SIZE = 1,
@@ -313,7 +315,7 @@ typedef enum {
     PACK_OBJECT_STYLE
 } PackType;
 
-int mtlnvg__packStateDataUniform(PackType packType, int value) {
+static int nvg__packStateDataUniform(PackType packType, int value) {
     switch (packType) {
         case PACK_OBJECT_STYLE:
             return (value & 0x01) << 12;
@@ -330,9 +332,9 @@ int mtlnvg__packStateDataUniform(PackType packType, int value) {
     }
 }
 
-static int mtlnvg__maxi(int a, int b) { return a > b ? a : b; }
+static int nvg__maxi(int a, int b) { return a > b ? a : b; }
 
-static int mtlnvg__maxVertCount(const NVGpath* paths, int npaths,
+static int nvg__maxVertCount(const NVGpath* paths, int npaths,
                                 int* indexCount, int* strokeCount) {
     int count = 0;
     if (indexCount != NULL) *indexCount = 0;
@@ -354,12 +356,12 @@ static int mtlnvg__maxVertCount(const NVGpath* paths, int npaths,
     return count;
 }
 
-static void mtlnvg__renderCancel(void* uptr) {
+void nvg__renderCancel(void* uptr) {
     MNVGcontext* mtl = (__bridge MNVGcontext*)uptr;
     [mtl renderCancel];
 }
 
-static int mtlnvg__renderCreateTexture(void* uptr, int type, int width,
+int nvg__renderCreateTexture(void* uptr, int type, int width,
                                        int height, int imageFlags,
                                        const unsigned char* data) {
     MNVGcontext* mtl = (__bridge MNVGcontext*)uptr;
@@ -370,22 +372,22 @@ static int mtlnvg__renderCreateTexture(void* uptr, int type, int width,
                                        data:data];
 }
 
-static int mtlnvg__renderCreate(void* uptr) {
+int nvg__renderCreate(void* uptr) {
     MNVGcontext* mtl = (__bridge MNVGcontext*)uptr;
     return [mtl renderCreate];
 }
 
-static void mtlnvg__renderDelete(void* uptr) {
+void nvg__renderDelete(void* uptr) {
     MNVGcontext* mtl = (__bridge_transfer MNVGcontext*)uptr;
     [mtl renderDelete];
 }
 
-static int mtlnvg__renderDeleteTexture(void* uptr, int image) {
+int nvg__renderDeleteTexture(void* uptr, int image) {
     MNVGcontext* mtl = (__bridge MNVGcontext*)uptr;
     return [mtl renderDeleteTexture:image];
 }
 
-static void mtlnvg__renderFill(void* uptr, NVGpaint* paint,
+void nvg__renderFill(void* uptr, NVGpaint* paint,
                                NVGcompositeOperationState compositeOperation,
                                NVGscissor* scissor, float fringe,
                                const float* bounds, const NVGpath* paths,
@@ -400,19 +402,19 @@ static void mtlnvg__renderFill(void* uptr, NVGpaint* paint,
                       npaths:npaths];
 }
 
-static void mtlnvg__renderFlush(void* uptr, NVGscissorBounds scissor) {
+void nvg__renderFlush(void* uptr, NVGscissorBounds scissor) {
     MNVGcontext* mtl = (__bridge MNVGcontext*)uptr;
     MTLScissorRect scissorRect = { .x = scissor.x, .y = scissor.y, .width = scissor.w, .height = scissor.h, };
     [mtl renderFlush: scissorRect];
 }
 
 
-static int mtlnvg__renderGetTextureSize(void* uptr, int image, int* w, int* h) {
+int nvg__renderGetTextureSize(void* uptr, int image, int* w, int* h) {
     MNVGcontext* mtl = (__bridge MNVGcontext*)uptr;
     return [mtl renderGetTextureSizeForImage:image width:w height:h];
 }
 
-static void mtlnvg__renderStroke(void* uptr, NVGpaint* paint,
+void nvg__renderStroke(void* uptr, NVGpaint* paint,
                                  NVGcompositeOperationState compositeOperation,
                                  NVGscissor* scissor, float fringe,
                                  float strokeWidth, int lineStyle, float lineLength, const NVGpath* paths,
@@ -429,7 +431,7 @@ static void mtlnvg__renderStroke(void* uptr, NVGpaint* paint,
                         npaths:npaths];
 }
 
-static void mtlnvg__renderTriangles(
+void nvg__renderTriangles(
                                     void* uptr, NVGpaint* paint, NVGcompositeOperationState compositeOperation,
                                     NVGscissor* scissor, const NVGvertex* verts, int nverts, float fringe, int text) {
     MNVGcontext* mtl = (__bridge MNVGcontext*)uptr;
@@ -442,7 +444,7 @@ static void mtlnvg__renderTriangles(
                              text:text];
 }
 
-static int mtlnvg__renderUpdateTexture(void* uptr, int image, int x, int y,
+int nvg__renderUpdateTexture(void* uptr, int image, int x, int y,
                                        int w, int h,
                                        const unsigned char* data) {
     MNVGcontext* mtl = (__bridge MNVGcontext*)uptr;
@@ -454,7 +456,7 @@ static int mtlnvg__renderUpdateTexture(void* uptr, int image, int x, int y,
                                         data:data];
 }
 
-static void mtlnvg__renderViewport(void* uptr, float width, float height,
+void nvg__renderViewport(void* uptr, float width, float height,
                                    float devicePixelRatio) {
     MNVGcontext* mtl = (__bridge MNVGcontext*)uptr;
     [mtl renderViewportWithWidth:width
@@ -510,25 +512,7 @@ NVGcontext* nvgCreateMTL(void* metalLayer, int flags) {
     return NULL;
 #endif  // MNVG_INVALID_TARGET
 
-    NVGparams params;
-    NVGcontext* ctx = NULL;
     MNVGcontext* mtl = [MNVGcontext new];
-
-    memset(&params, 0, sizeof(params));
-    params.renderCreate = mtlnvg__renderCreate;
-    params.renderCreateTexture = mtlnvg__renderCreateTexture;
-    params.renderDeleteTexture = mtlnvg__renderDeleteTexture;
-    params.renderUpdateTexture = mtlnvg__renderUpdateTexture;
-    params.renderGetTextureSize = mtlnvg__renderGetTextureSize;
-    params.renderViewport = mtlnvg__renderViewport;
-    params.renderCancel = mtlnvg__renderCancel;
-    params.renderFlush = mtlnvg__renderFlush;
-    params.renderFill = mtlnvg__renderFill;
-    params.renderStroke = mtlnvg__renderStroke;
-    params.renderTriangles = mtlnvg__renderTriangles;
-    params.renderDelete = mtlnvg__renderDelete;
-    params.userPtr = (__bridge_retained void*)mtl;
-    params.edgeAntiAlias = flags & NVG_ANTIALIAS ? 1 : 0;
 
     mtl.flags = flags;
 #if __aarch64__ && !TARGET_OS_SIMULATOR
@@ -541,7 +525,7 @@ NVGcontext* nvgCreateMTL(void* metalLayer, int flags) {
     mtl.indexSize = 4;  // MTLIndexTypeUInt32
     mtl.metalLayer = (__bridge CAMetalLayer*)metalLayer;
 
-    ctx = nvgCreateInternal(&params);
+    NVGcontext* ctx = nvgCreateInternal((__bridge_retained void*)mtl);
     if (ctx == NULL) goto error;
     return ctx;
 
@@ -551,7 +535,7 @@ error:
     return NULL;
 }
 
-static void mtlnvg__vset(NVGvertex* vtx, float x, float y, float u, float v) {
+static void nvg__vset(NVGvertex* vtx, float x, float y, float u, float v) {
     int16_t scaling_factor = 1 << 14;
     vtx->x = x;
     vtx->y = y;
@@ -592,14 +576,15 @@ void mnvgDeleteFramebuffer(MNVGframebuffer* framebuffer) {
 
 int mnvgBlitFramebuffer(NVGcontext* ctx, MNVGframebuffer* fb, int x, int y, int w, int h)
 {
-    MNVGcontext* mtl = (__bridge MNVGcontext*)nvg__getUptr(ctx);
+    MNVGcontext* mtl = MNVG_GET_CONTEXT(ctx);
     MNVGtexture* tex = [mtl findTexture:fb->image];
     [mtl blitTextureToScreen:tex];
     return 1;
 }
 
 void mnvgClearWithColor(NVGcontext* ctx, NVGcolor color) {
-    MNVGcontext* mtl = (__bridge MNVGcontext*)nvgInternalParams(ctx)->userPtr;
+    
+    MNVGcontext* mtl = MNVG_GET_CONTEXT(ctx);
     float alpha = (float)color.a;
     mtl.clearColor = MTLClearColorMake((float)color.r * alpha,
                                        (float)color.g * alpha,
@@ -610,7 +595,7 @@ void mnvgClearWithColor(NVGcontext* ctx, NVGcolor color) {
 
 void mnvgReadPixels(NVGcontext* ctx, int image, int x, int y, int width,
                     int height, void* data) {
-  MNVGcontext* mtl = (__bridge MNVGcontext*)nvgInternalParams(ctx)->userPtr;
+  MNVGcontext* mtl = MNVG_GET_CONTEXT(ctx);
 
   MNVGtexture* tex = [mtl findTexture:image];
   if (tex == nil) return;
@@ -664,7 +649,7 @@ void mnvgReadPixels(NVGcontext* ctx, int image, int x, int y, int width,
 }
 
 void* mnvgDevice(NVGcontext* ctx) {
-    MNVGcontext* mtl = (__bridge MNVGcontext*)nvgInternalParams(ctx)->userPtr;
+    MNVGcontext* mtl = MNVG_GET_CONTEXT(ctx);
     return (__bridge void*)mtl.metalLayer.device;
 }
 
@@ -678,7 +663,7 @@ void* mnvgDevice(NVGcontext* ctx) {
     MNVGrenderData* renderData = _buffers.renderData;
     if (renderData->ncalls + 1 > renderData->ccalls) {
         MNVGcall* calls;
-        int ccalls = mtlnvg__maxi(renderData->ncalls + 1, 128) + renderData->ccalls / 2;
+        int ccalls = nvg__maxi(renderData->ncalls + 1, 128) + renderData->ccalls / 2;
         calls = (MNVGcall*)realloc(renderData->calls, sizeof(MNVGcall) * ccalls);
         if (calls == NULL) return NULL;
         renderData->calls = calls;
@@ -693,7 +678,7 @@ void* mnvgDevice(NVGcontext* ctx) {
     MNVGrenderData* renderData = _buffers.renderData;
     int ret = 0;
     if (renderData->nuniforms + n > renderData->cuniforms) {
-        int cuniforms = mtlnvg__maxi(renderData->nuniforms + n, 128) + renderData->cuniforms / 2;
+        int cuniforms = nvg__maxi(renderData->nuniforms + n, 128) + renderData->cuniforms / 2;
         id<MTLBuffer> buffer = [_metalLayer.device
                                 newBufferWithLength:(_fragSize * cuniforms)
                                 options:kMetalBufferOptions];
@@ -715,7 +700,7 @@ void* mnvgDevice(NVGcontext* ctx) {
     int ret = 0;
     MNVGrenderData* renderData = _buffers.renderData;
     if (renderData->nindexes + n > renderData->cindexes) {
-        int cindexes = mtlnvg__maxi(renderData->nindexes + n, 4096) \
+        int cindexes = nvg__maxi(renderData->nindexes + n, 4096) \
         + renderData->cindexes / 2;
         id<MTLBuffer> buffer = [_metalLayer.device
                                 newBufferWithLength:(_indexSize * cindexes)
@@ -755,7 +740,7 @@ void* mnvgDevice(NVGcontext* ctx) {
     MNVGrenderData* renderData = _buffers.renderData;
     int ret = 0;
     if (renderData->nverts + n > renderData->cverts) {
-        int cverts = mtlnvg__maxi(renderData->nverts + n, 4096) + renderData->cverts / 2;
+        int cverts = nvg__maxi(renderData->nverts + n, 4096) + renderData->cverts / 2;
         id<MTLBuffer> buffer = [_metalLayer.device
                                 newBufferWithLength:(sizeof(NVGvertex) * cverts)
                                 options:kMetalBufferOptions];
@@ -813,7 +798,7 @@ void* mnvgDevice(NVGcontext* ctx) {
     frag->innerCol = paint->innerColor.rgba32;
     frag->outerCol = paint->outerColor.rgba32;
     frag->dashCol = paint->dashColor.rgba32;
-    frag->stateData = mtlnvg__packStateDataUniform(PACK_LINE_STYLE, lineStyle);
+    frag->stateData = nvg__packStateDataUniform(PACK_LINE_STYLE, lineStyle);
     frag->radius = paint->radius;
     frag->feather = paint->feather;
     frag->extent = (vector_float2){paint->extent[0], paint->extent[1]};
@@ -839,22 +824,22 @@ void* mnvgDevice(NVGcontext* ctx) {
             MNVGtexture* tex = [self findTexture:paint->image];
             if (tex == nil) return 0;
             if (tex->flags & NVG_IMAGE_FLIPY) {
-                frag->stateData |= mtlnvg__packStateDataUniform(PACK_REVERSE, true);
+                frag->stateData |= nvg__packStateDataUniform(PACK_REVERSE, true);
             }
             if (tex->type == NVG_TEXTURE_RGBA)
-                frag->stateData |= mtlnvg__packStateDataUniform(PACK_TEX_TYPE, (tex->flags & NVG_IMAGE_PREMULTIPLIED) ? 0 : 1);
+                frag->stateData |= nvg__packStateDataUniform(PACK_TEX_TYPE, (tex->flags & NVG_IMAGE_PREMULTIPLIED) ? 0 : 1);
             else if(tex->type == NVG_TEXTURE_ALPHA)
-                frag->stateData |= mtlnvg__packStateDataUniform(PACK_TEX_TYPE, 4);
+                frag->stateData |= nvg__packStateDataUniform(PACK_TEX_TYPE, 4);
             else if(tex->type == NVG_TEXTURE_ARGB)
-                frag->stateData |= mtlnvg__packStateDataUniform(PACK_TEX_TYPE, 3);
+                frag->stateData |= nvg__packStateDataUniform(PACK_TEX_TYPE, 3);
             else
-                frag->stateData |= mtlnvg__packStateDataUniform(PACK_TEX_TYPE, 2);
+                frag->stateData |= nvg__packStateDataUniform(PACK_TEX_TYPE, 2);
             
             break;
         }
         case PAINT_TYPE_OBJECT_RECT: {
-            frag->stateData |= mtlnvg__packStateDataUniform(PACK_FLAG_TYPE, paint->flag_type);
-            frag->stateData |= mtlnvg__packStateDataUniform(PACK_OBJECT_STYLE, paint->flag_outline);
+            frag->stateData |= nvg__packStateDataUniform(PACK_FLAG_TYPE, paint->flag_type);
+            frag->stateData |= nvg__packStateDataUniform(PACK_OBJECT_STYLE, paint->flag_outline);
             frag->dashCol = paint->dashColor.rgba32;
             break;
         }
@@ -907,7 +892,7 @@ void* mnvgDevice(NVGcontext* ctx) {
 
     // Draws anti-aliased fragments.
     [self setUniforms:call->uniformOffset image:call->image];
-    if (_flags & NVG_ANTIALIAS && call->strokeCount > 0) {
+    if (call->strokeCount > 0) { // anti-aliasing
         [_renderEncoder setDepthStencilState:_fillAntiAliasStencilState];
         [_renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip
                            vertexStart:call->strokeOffset
@@ -1043,11 +1028,7 @@ void* mnvgDevice(NVGcontext* ctx) {
     }
 
     _vertexFunction = [library newFunctionWithName:@"vertexShader"];
-    if (_flags & NVG_ANTIALIAS) {
-        _fragmentFunction = [library newFunctionWithName:@"fragmentShaderAA"];
-    } else {
-        _fragmentFunction = [library newFunctionWithName:@"fragmentShader"];
-    }
+    _fragmentFunction = [library newFunctionWithName:@"fragmentShaderAA"];
 
     _commandQueue = [device newCommandQueue];
 
@@ -1382,7 +1363,7 @@ void* mnvgDevice(NVGcontext* ctx) {
 
     // Allocate vertices for all the paths.
     int indexCount, strokeCount = 0;
-    int maxverts = mtlnvg__maxVertCount(paths, npaths, &indexCount, &strokeCount)
+    int maxverts = nvg__maxVertCount(paths, npaths, &indexCount, &strokeCount)
     + call->triangleCount;
     int vertOffset = [self allocVerts:maxverts];
     if (vertOffset == -1) goto error;
@@ -1425,10 +1406,10 @@ void* mnvgDevice(NVGcontext* ctx) {
         // Quad
         call->triangleOffset = vertOffset;
         quad = &renderData->verts[call->triangleOffset];
-        mtlnvg__vset(&quad[0], bounds[2], bounds[3], 0.5f, 1.0f);
-        mtlnvg__vset(&quad[1], bounds[2], bounds[1], 0.5f, 1.0f);
-        mtlnvg__vset(&quad[2], bounds[0], bounds[3], 0.5f, 1.0f);
-        mtlnvg__vset(&quad[3], bounds[0], bounds[1], 0.5f, 1.0f);
+        nvg__vset(&quad[0], bounds[2], bounds[3], 0.5f, 1.0f);
+        nvg__vset(&quad[1], bounds[2], bounds[1], 0.5f, 1.0f);
+        nvg__vset(&quad[2], bounds[0], bounds[3], 0.5f, 1.0f);
+        nvg__vset(&quad[3], bounds[0], bounds[1], 0.5f, 1.0f);
     }
 
     // Fill shader
@@ -1484,7 +1465,7 @@ error:
 
     MNVGrenderData* renderData = _buffers.renderData;
     if (s_framebuffer == NULL ||
-        nvgInternalParams(s_framebuffer->ctx)->userPtr != (__bridge void*)self) {
+        MNVG_GET_CONTEXT(s_framebuffer->ctx) != (__bridge void*)self) {
         textureSize = _viewPortSize;
     } else {  // renders in framebuffer
         renderData->image = s_framebuffer->image;
@@ -1613,7 +1594,7 @@ error:
 
     // Allocate vertices for all the paths.
     int strokeCount = 0;
-    int maxverts = mtlnvg__maxVertCount(paths, npaths, NULL, &strokeCount);
+    int maxverts = nvg__maxVertCount(paths, npaths, NULL, &strokeCount);
     int offset = [self allocVerts:maxverts];
     if (offset == -1) goto error;
 
@@ -1635,41 +1616,17 @@ error:
         }
     }
 
-    if (false /*_flags & NVG_STENCIL_STROKES*/) {
-        // Fill shader
-        call->uniformOffset = [self allocFragUniforms:2];
-        if (call->uniformOffset == -1) goto error;
-        [self convertPaintForFrag:[self fragUniformAtIndex:call->uniformOffset]
-                            paint:paint
-                          scissor:scissor
-                            width:strokeWidth
-                           fringe:fringe
-                        lineStyle:lineStyle
-                       lineLength:lineLength
-                     lineReversed:lineReversed];
-        MNVGfragUniforms* frag = [self
-                                  fragUniformAtIndex:call->uniformOffset + _fragSize];
-        [self convertPaintForFrag:frag
-                            paint:paint
-                          scissor:scissor
-                            width:strokeWidth
-                           fringe:fringe
-                        lineStyle:lineStyle
-                       lineLength:lineLength
-                     lineReversed:lineReversed];
-    } else {
-        // Fill shader
-        call->uniformOffset = [self allocFragUniforms:1];
-        if (call->uniformOffset == -1) goto error;
-        [self convertPaintForFrag:[self fragUniformAtIndex:call->uniformOffset]
-                            paint:paint
-                          scissor:scissor
-                            width:strokeWidth
-                           fringe:fringe
-                        lineStyle:lineStyle
-                       lineLength:lineLength
-                     lineReversed:lineReversed];
-    }
+    // Fill shader
+    call->uniformOffset = [self allocFragUniforms:1];
+    if (call->uniformOffset == -1) goto error;
+    [self convertPaintForFrag:[self fragUniformAtIndex:call->uniformOffset]
+                        paint:paint
+                      scissor:scissor
+                        width:strokeWidth
+                       fringe:fringe
+                    lineStyle:lineStyle
+                   lineLength:lineLength
+                 lineReversed:lineReversed];
 
     return;
 
@@ -1719,7 +1676,7 @@ error:
 
     if(text) {
         frag->type = PAINT_TYPE_IMG;
-        frag->stateData = mtlnvg__packStateDataUniform(PACK_TEX_TYPE, 2);
+        frag->stateData = nvg__packStateDataUniform(PACK_TEX_TYPE, 2);
     }
 
     return;
@@ -1829,36 +1786,11 @@ error:
         return;
     }
 
-    if (false /*_flags & NVG_STENCIL_STROKES*/) {
-        // Fills the stroke base without overlap.
-        [self setUniforms:(call->uniformOffset + _fragSize) image:call->image];
-        [_renderEncoder setDepthStencilState:_strokeShapeStencilState];
-        [_renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip
-                           vertexStart:call->strokeOffset
-                           vertexCount:call->strokeCount];
-
-        // Draws anti-aliased fragments.
-        [self setUniforms:call->uniformOffset image:call->image];
-        [_renderEncoder setDepthStencilState:_strokeAntiAliasStencilState];
-        [_renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip
-                           vertexStart:call->strokeOffset
-                           vertexCount:call->strokeCount];
-
-        // Clears stencil buffer.
-        [_renderEncoder setDepthStencilState:_strokeClearStencilState];
-        [_renderEncoder setRenderPipelineState:_stencilOnlyPipelineState];
-        [_renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip
-                           vertexStart:call->strokeOffset
-                           vertexCount:call->strokeCount];
-        [_renderEncoder setDepthStencilState:_defaultStencilState];
-        [_renderEncoder setRenderPipelineState:_pipelineState];
-    } else {
-        // Draws strokes.
-        [self setUniforms:call->uniformOffset image:call->image];
-        [_renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip
-                           vertexStart:call->strokeOffset
-                           vertexCount:call->strokeCount];
-    }
+    // Draws strokes.
+    [self setUniforms:call->uniformOffset image:call->image];
+    [_renderEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip
+                       vertexStart:call->strokeOffset
+                       vertexCount:call->strokeCount];
 }
 
 - (void)triangles:(MNVGcall*)call {

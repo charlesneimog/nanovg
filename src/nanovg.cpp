@@ -137,7 +137,7 @@ struct StrokeCacheLine {
 using StrokeCache = std::unordered_map<uint32_t, StrokeCacheLine>;
 
 struct NVGcontext {
-	NVGparams params;
+	NVGbackend backend;
     uint8_t* commands;
     float* commandValues;
 	int ccommands;
@@ -166,8 +166,6 @@ struct NVGcontext {
     int numCached;
     StrokeCache* strokeCache;
 };
-
-void* nvg__getUptr(void* ctx) { return ((NVGcontext*)ctx)->params.userPtr; }
 
 static inline float nvg__sqrtf(float a) { return sqrtf(a); }
 static inline float nvg__modf(float a, float b) { return fmodf(a, b); }
@@ -321,14 +319,14 @@ static NVGstate* nvg__getState(NVGcontext* ctx)
 	return &ctx->states[ctx->nstates-1];
 }
 
-NVGcontext* nvgCreateInternal(NVGparams* params)
+NVGcontext* nvgCreateInternal(NVGbackend backend)
 {
 	FONSparams fontParams;
     NVGcontext* ctx = (NVGcontext*) malloc(sizeof(NVGcontext));
 	if (ctx == NULL) goto error;
 	memset(ctx, 0, sizeof(NVGcontext));
 
-	ctx->params = *params;
+    ctx->backend = backend;
 	for (int i = 0; i < NVG_MAX_FONTIMAGES; i++)
 		ctx->fontImages[i] = 0;
 
@@ -346,7 +344,7 @@ NVGcontext* nvgCreateInternal(NVGparams* params)
 
 	nvg__setDevicePixelRatio(ctx, 1.0f);
 
-	if (ctx->params.renderCreate(ctx->params.userPtr) == 0) goto error;
+	if (nvg__renderCreate(ctx->backend) == 0) goto error;
 
 	// Init font rendering
 	memset(&fontParams, 0, sizeof(fontParams));
@@ -362,7 +360,7 @@ NVGcontext* nvgCreateInternal(NVGparams* params)
 	if (ctx->fs == NULL) goto error;
 
 	// Create font texture
-	ctx->fontImages[0] = ctx->params.renderCreateTexture(ctx->params.userPtr, NVG_TEXTURE_ALPHA, fontParams.width, fontParams.height, 0, NULL);
+	ctx->fontImages[0] = nvg__renderCreateTexture(ctx->backend, NVG_TEXTURE_ALPHA, fontParams.width, fontParams.height, 0, NULL);
 	if (ctx->fontImages[0] == 0) goto error;
 	ctx->fontImageIdx = 0;
     ctx->scissor = {0.0f, 0.0f, -1.0f, -1.0f};
@@ -374,16 +372,6 @@ NVGcontext* nvgCreateInternal(NVGparams* params)
 error:
 	nvgDeleteInternal(ctx);
 	return 0;
-}
-
-int nvgGetImageTextureId(NVGcontext* ctx, int handle)
-{
-	return ctx->params.renderGetImageTextureId(ctx->params.userPtr, handle);
-}
-
-NVGparams* nvgInternalParams(NVGcontext* ctx)
-{
-    return &ctx->params;
 }
 
 void nvgCurrentScissor(NVGcontext* ctx, float* x, float* y, float* w, float* h) {
@@ -409,8 +397,7 @@ void nvgDeleteInternal(NVGcontext* ctx)
 		}
 	}
 
-	if (ctx->params.renderDelete != NULL)
-		ctx->params.renderDelete(ctx->params.userPtr);
+    nvg__renderDelete(ctx->backend);
   
     free(ctx);
 }
@@ -427,7 +414,7 @@ void nvgBeginFrame(NVGcontext* ctx, float windowWidth, float windowHeight, float
 
 	nvg__setDevicePixelRatio(ctx, devicePixelRatio);
 
-	ctx->params.renderViewport(ctx->params.userPtr, windowWidth, windowHeight, devicePixelRatio);
+	nvg__renderViewport(ctx->backend, windowWidth, windowHeight, devicePixelRatio);
     ctx->globalScissor = {.x = 0, .y = 0, .w = 0, .h = 0};
 #if DEBUG
 	ctx->drawCallCount = 0;
@@ -439,12 +426,12 @@ void nvgBeginFrame(NVGcontext* ctx, float windowWidth, float windowHeight, float
 
 void nvgCancelFrame(NVGcontext* ctx)
 {
-	ctx->params.renderCancel(ctx->params.userPtr);
+	nvg__renderCancel(ctx->backend);
 }
 
 void nvgEndFrame(NVGcontext* ctx)
 {
-    ctx->params.renderFlush(ctx->params.userPtr, ctx->globalScissor);
+    nvg__renderFlush(ctx->backend, ctx->globalScissor);
 	if (ctx->fontImageIdx != 0) {
 		int fontImage = ctx->fontImages[ctx->fontImageIdx];
 		ctx->fontImages[ctx->fontImageIdx] = 0;
@@ -931,34 +918,34 @@ int nvgCreateImageMem(NVGcontext* ctx, int imageFlags, unsigned char* data, int 
 
 int nvgCreateImageRGBA(NVGcontext* ctx, int w, int h, int imageFlags, const unsigned char* data)
 {
-	return ctx->params.renderCreateTexture(ctx->params.userPtr, NVG_TEXTURE_RGBA, w, h, imageFlags, data);
+	return nvg__renderCreateTexture(ctx->backend, NVG_TEXTURE_RGBA, w, h, imageFlags, data);
 }
 
 int nvgCreateImageARGB(NVGcontext* ctx, int w, int h, int imageFlags, const unsigned char* data)
 {
-    return ctx->params.renderCreateTexture(ctx->params.userPtr, NVG_TEXTURE_ARGB, w, h, imageFlags, data);
+    return nvg__renderCreateTexture(ctx->backend, NVG_TEXTURE_ARGB, w, h, imageFlags, data);
 }
 
 int nvgCreateImageAlpha(NVGcontext* ctx, int w, int h, int imageFlags, const unsigned char* data)
 {
-    return ctx->params.renderCreateTexture(ctx->params.userPtr, NVG_TEXTURE_ALPHA, w, h, imageFlags, data);
+    return nvg__renderCreateTexture(ctx->backend, NVG_TEXTURE_ALPHA, w, h, imageFlags, data);
 }
 
 void nvgUpdateImage(NVGcontext* ctx, int image, const unsigned char* data)
 {
 	int w, h;
-	ctx->params.renderGetTextureSize(ctx->params.userPtr, image, &w, &h);
-	ctx->params.renderUpdateTexture(ctx->params.userPtr, image, 0,0, w,h, data);
+	nvg__renderGetTextureSize(ctx->backend, image, &w, &h);
+	nvg__renderUpdateTexture(ctx->backend, image, 0,0, w,h, data);
 }
 
 void nvgImageSize(NVGcontext* ctx, int image, int* w, int* h)
 {
-	ctx->params.renderGetTextureSize(ctx->params.userPtr, image, w, h);
+	nvg__renderGetTextureSize(ctx->backend, image, w, h);
 }
 
 void nvgDeleteImage(NVGcontext* ctx, int image)
 {
-	ctx->params.renderDeleteTexture(ctx->params.userPtr, image);
+	nvg__renderDeleteTexture(ctx->backend, image);
 }
 
 NVGpaint nvgDoubleStroke(NVGcontext* ctx, NVGcolor icol, NVGcolor ocol, NVGcolor dashCol, float dashSize, bool isGradientStroke, bool showActivity, float activityOffset)
@@ -2719,7 +2706,7 @@ int nvgStrokeCachedPath(NVGcontext* ctx, uint32_t pathId)
         
         memcpy(cacheEntry.currentTransform, state->xform, 6*sizeof(float));
 
-        ctx->params.renderStroke(ctx->params.userPtr, &strokePaint, state->compositeOperation, &state->scissor, ctx->fringeWidth, strokeWidth, state->lineStyle, cacheEntry.lineLength, cacheEntry.paths.data(), (int)cacheEntry.paths.size());
+        nvg__renderStroke(ctx->backend, &strokePaint, state->compositeOperation, &state->scissor, ctx->fringeWidth, strokeWidth, state->lineStyle, cacheEntry.lineLength, cacheEntry.paths.data(), (int)cacheEntry.paths.size());
         return 1;
     }
     
@@ -2755,7 +2742,7 @@ int nvgFillCachedPath(NVGcontext* ctx, uint32_t pathId)
         
         memcpy(cacheEntry.currentTransform, state->xform, 6*sizeof(float));
 
-        ctx->params.renderFill(ctx->params.userPtr, &fillPaint, state->compositeOperation, &state->scissor, ctx->fringeWidth, ctx->cache->bounds, cacheEntry.paths.data(), (int)cacheEntry.paths.size());
+        nvg__renderFill(ctx->backend, &fillPaint, state->compositeOperation, &state->scissor, ctx->fringeWidth, ctx->cache->bounds, cacheEntry.paths.data(), (int)cacheEntry.paths.size());
         return 1;
     }
     
@@ -2768,7 +2755,7 @@ void nvgFill(NVGcontext* ctx)
 	NVGpaint fillPaint = state->fill;
 
 	nvg__flattenPaths(ctx);
-	if (ctx->params.edgeAntiAlias && state->shapeAntiAlias)
+	if (state->shapeAntiAlias)
 		nvg__expandFill(ctx, ctx->fringeWidth, NVG_MITER, 2.4f);
 	else
 		nvg__expandFill(ctx, 0.0f, NVG_MITER, 2.4f);
@@ -2777,7 +2764,7 @@ void nvgFill(NVGcontext* ctx)
 	fillPaint.innerColor.a *= state->alpha;
 	fillPaint.outerColor.a *= state->alpha;
 
-	ctx->params.renderFill(ctx->params.userPtr, &fillPaint, state->compositeOperation, &state->scissor, ctx->fringeWidth,
+	nvg__renderFill(ctx->backend, &fillPaint, state->compositeOperation, &state->scissor, ctx->fringeWidth,
 						   ctx->cache->bounds, ctx->cache->paths, ctx->cache->npaths);
     
 	// Count triangles
@@ -2813,12 +2800,12 @@ void nvgStroke(NVGcontext* ctx)
     
 	nvg__flattenPaths(ctx);
 
-	if (ctx->params.edgeAntiAlias && state->shapeAntiAlias && (state->lineStyle <= 1 || state->lineStyle == 5))
+	if (state->shapeAntiAlias && (state->lineStyle <= 1 || state->lineStyle == 5))
 		nvg__expandStroke(ctx, strokeWidth*0.5f, ctx->fringeWidth, state->lineCap, state->lineJoin, state->lineStyle, state->miterLimit);
 	else
 		nvg__expandStroke(ctx, strokeWidth*0.5f, 0.0f, state->lineCap, state->lineJoin, state->lineStyle, state->miterLimit);
 
-	ctx->params.renderStroke(ctx->params.userPtr, &strokePaint, state->compositeOperation, &state->scissor, ctx->fringeWidth,
+	nvg__renderStroke(ctx->backend, &strokePaint, state->compositeOperation, &state->scissor, ctx->fringeWidth,
 							 strokeWidth, state->lineStyle, ctx->currentLineLength, ctx->cache->paths, ctx->cache->npaths);
 
 	// Count triangles
@@ -2840,7 +2827,7 @@ static void nvg__renderTrianglesSimple(NVGcontext* ctx, const NVGvertex* verts, 
     fillPaint.innerColor.a *= state->alpha;
     fillPaint.outerColor.a *= state->alpha;
 
-    ctx->params.renderTriangles(ctx->params.userPtr, &fillPaint, state->compositeOperation, &scissor, verts, nverts, ctx->fringeWidth, 0);
+    nvg__renderTriangles(ctx->backend, &fillPaint, state->compositeOperation, &scissor, verts, nverts, ctx->fringeWidth, 0);
 
 #if DEBUG
     ctx->drawCallCount++;
@@ -3092,7 +3079,7 @@ static void nvg__flushTextTexture(NVGcontext* ctx)
 			int y = dirty[1];
 			int w = dirty[2] - dirty[0];
 			int h = dirty[3] - dirty[1];
-			ctx->params.renderUpdateTexture(ctx->params.userPtr, fontImage, x,y, w,h, data);
+			nvg__renderUpdateTexture(ctx->backend, fontImage, x,y, w,h, data);
 		}
 	}
 }
@@ -3114,7 +3101,7 @@ static int nvg__allocTextAtlas(NVGcontext* ctx)
 			iw *= 2;
 		if (iw > NVG_MAX_FONTIMAGE_SIZE || ih > NVG_MAX_FONTIMAGE_SIZE)
 			iw = ih = NVG_MAX_FONTIMAGE_SIZE;
-		ctx->fontImages[ctx->fontImageIdx+1] = ctx->params.renderCreateTexture(ctx->params.userPtr, NVG_TEXTURE_ALPHA, iw, ih, 0, NULL);
+		ctx->fontImages[ctx->fontImageIdx+1] = nvg__renderCreateTexture(ctx->backend, NVG_TEXTURE_ALPHA, iw, ih, 0, NULL);
 	}
 	++ctx->fontImageIdx;
 	fonsResetAtlas(ctx->fs, iw, ih);
@@ -3134,7 +3121,7 @@ static void nvg__renderText(NVGcontext* ctx, NVGvertex* verts, int nverts)
 	paint.innerColor.a *= state->alpha;
 	paint.outerColor.a *= state->alpha;
 
-	ctx->params.renderTriangles(ctx->params.userPtr, &paint, state->compositeOperation, &state->scissor, verts, nverts, ctx->fringeWidth, 1);
+	nvg__renderTriangles(ctx->backend, &paint, state->compositeOperation, &state->scissor, verts, nverts, ctx->fringeWidth, 1);
 
 #if DEBUG
 	ctx->drawCallCount++;

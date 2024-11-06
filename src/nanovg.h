@@ -841,30 +841,26 @@ struct NVGpath {
 };
 typedef struct NVGpath NVGpath;
 
-struct NVGparams {
-	void* userPtr;
-	int edgeAntiAlias;
-	int (*renderCreate)(void* uptr);
-	int (*renderCreateTexture)(void* uptr, int type, int w, int h, int imageFlags, const unsigned char* data);
-	int (*renderDeleteTexture)(void* uptr, int image);
-	int (*renderUpdateTexture)(void* uptr, int image, int x, int y, int w, int h, const unsigned char* data);
-	int (*renderGetTextureSize)(void* uptr, int image, int* w, int* h);
-	int (*renderGetImageTextureId)(void* uptr, int handle);
-	void (*renderViewport)(void* uptr, float width, float height, float devicePixelRatio);
-	void (*renderCancel)(void* uptr);
-    void (*renderFlush)(void* uptr, NVGscissorBounds scissor);
-	void (*renderFill)(void* uptr, NVGpaint* paint, NVGcompositeOperationState compositeOperation, NVGscissor* scissor, float fringe, const float* bounds, const NVGpath* paths, int npaths);
-	void (*renderStroke)(void* uptr, NVGpaint* paint, NVGcompositeOperationState compositeOperation, NVGscissor* scissor, float fringe, float strokeWidth, int lineStyle, float lineLength, const NVGpath* paths, int npaths);
-	void (*renderTriangles)(void* uptr, NVGpaint* paint, NVGcompositeOperationState compositeOperation, NVGscissor* scissor, const NVGvertex* verts, int nverts, float fringe, int text);
-	void (*renderDelete)(void* uptr);
-};
-typedef struct NVGparams NVGparams;
+typedef void* NVGbackend;
+
+// Functions implemented on backend
+int nvg__renderCreate(void* uptr);
+int nvg__renderCreateTexture(void* uptr, int type, int w, int h, int imageFlags, const unsigned char* data);
+int nvg__renderDeleteTexture(void* uptr, int image);
+int nvg__renderUpdateTexture(void* uptr, int image, int x, int y, int w, int h, const unsigned char* data);
+int nvg__renderGetTextureSize(void* uptr, int image, int* w, int* h);
+int nvg__renderGetImageTextureId(void* uptr, int handle);
+void nvg__renderViewport(void* uptr, float width, float height, float devicePixelRatio);
+void nvg__renderCancel(void* uptr);
+void nvg__renderFlush(void* uptr, NVGscissorBounds scissor);
+void nvg__renderFill(void* uptr, NVGpaint* paint, NVGcompositeOperationState compositeOperation, NVGscissor* scissor, float fringe, const float* bounds, const NVGpath* paths, int npaths);
+void nvg__renderStroke(void* uptr, NVGpaint* paint, NVGcompositeOperationState compositeOperation, NVGscissor* scissor, float fringe, float strokeWidth, int lineStyle, float lineLength, const NVGpath* paths, int npaths);
+void nvg__renderTriangles(void* uptr, NVGpaint* paint, NVGcompositeOperationState compositeOperation, NVGscissor* scissor, const NVGvertex* verts, int nverts, float fringe, int text);
+void nvg__renderDelete(void* uptr);
 
 // Constructor and destructor, called by the render back-end.
-NVGcontext* nvgCreateInternal(NVGparams* params);
+NVGcontext* nvgCreateInternal(void* params);
 void nvgDeleteInternal(NVGcontext* ctx);
-
-NVGparams* nvgInternalParams(NVGcontext* ctx);
 
 // Debug function to dump cached path data.
 void nvgDebugDumpPathCache(NVGcontext* ctx);
