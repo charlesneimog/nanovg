@@ -59,7 +59,7 @@ void* nvg__getUptr(void* ctx);
   #define nvgViewport(x, y, w, h) NVG_NOTUSED(x); NVG_NOTUSED(y); NVG_NOTUSED(w); NVG_NOTUSED(h)
   #define nvgClear(nvg) mnvgClearWithColor(nvg, nvgRGBA(0, 0, 0, 0))
   #define nvgClearWithColor(nvg, col) mnvgClearWithColor(nvg, col)
-  #define nvgReadPixels(nvg, image, x, y, w, h, data) mnvgReadPixels(nvg, image, x, y, w, h, data)
+  #define nvgReadPixels(nvg, image, x, y, w, h, total_h, data) mnvgReadPixels(nvg, image, x, y, w, h, data)
   #define nvgBlitFramebuffer(nvg, fb, x, y, w, h) mnvgBlitFramebuffer(nvg, fb, x, y, w, h)
   #define nvgMaxTextureSize(size) size = 16384
   #define NVGframebuffer MNVGframebuffer
@@ -69,7 +69,7 @@ void* nvg__getUptr(void* ctx);
 #define nvgCreateFramebuffer(ctx, w, h, flags) nvgluCreateFramebuffer(ctx, w, h, flags)
 #define nvgDeleteFramebuffer(fb) nvgluDeleteFramebuffer(fb)
 #define nvgViewport(x, y, w, h) glViewport(x, y, w, h)
-#define nvgReadPixels(nvg, image, x, y, w, h, data) nvgluReadPixels(nvg, image, x, y, w, h, data)
+#define nvgReadPixels(nvg, image, x, y, w, h, total_h, data) nvgluReadPixels(nvg, image, x, y, w, h, total_h, data)
 #define nvgBlitFramebuffer(nvg, fb, x, y, w, h) nvgluBlitFramebuffer(nvg, fb, x, y, w, h)
 #define nvgClear(nvg) glDisable(GL_SCISSOR_TEST); \
                       glClearColor(0, 0, 0, 0); \

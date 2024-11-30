@@ -593,23 +593,23 @@ void mnvgClearWithColor(NVGcontext* ctx, NVGcolor color) {
     mtl.clearBufferOnFlush = YES;
 }
 
-void mnvgReadPixels(NVGcontext* ctx, int image, int x, int y, int width,
+void mnvgReadPixels(NVGcontext* ctx, MNVGframebuffer* fb, int x, int y, int width,
                     int height, void* data) {
   MNVGcontext* mtl = MNVG_GET_CONTEXT(ctx);
 
-  MNVGtexture* tex = [mtl findTexture:image];
+  MNVGtexture* tex = [mtl findTexture:fb->image];
   if (tex == nil) return;
 
   NSUInteger bytesPerRow;
   if (tex->type == NVG_TEXTURE_RGBA || tex->type == NVG_TEXTURE_ARGB) {
-    bytesPerRow = tex->tex.width * 4;
+    bytesPerRow = width * 4;
   } else {
-    bytesPerRow = tex->tex.width;
+    bytesPerRow = width;
   }
 
   // Makes sure the command execution for the image has been done.
   for (MNVGbuffers* buffers in mtl.cbuffers) {
-    if (buffers.isBusy && buffers.renderData && buffers.renderData->image == image && buffers.commandBuffer) {
+    if (buffers.isBusy && buffers.renderData && buffers.renderData->image == fb->image && buffers.commandBuffer) {
       id<MTLCommandBuffer> commandBuffer = buffers.commandBuffer;
       while(buffers.isBusy) usleep(10);
       break;

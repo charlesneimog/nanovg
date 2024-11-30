@@ -102,7 +102,7 @@ void mnvgDeleteFramebuffer(MNVGframebuffer* framebuffer);
 void mnvgClearWithColor(NVGcontext* ctx, NVGcolor color);
 
 // Read pixels from an image
-void mnvgReadPixels(NVGcontext* ctx, int image, int x, int y, int width,
+void mnvgReadPixels(NVGcontext* ctx, MNVGframebuffer* fb, int x, int y, int width,
                     int height, void* data);
 
 // Returns a pointer to the corresponded `id<MTLDevice>` object.

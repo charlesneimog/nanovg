@@ -124,19 +124,17 @@ void nvgluBindFramebuffer(NVGLUframebuffer* fb)
 	glBindFramebuffer(GL_FRAMEBUFFER, fb != NULL ? fb->fbo : defaultFBO);
 }
 
-static void nvgluReadPixels(NVGcontext* ctx, int image, int x, int y, int width, int height, void* data) {
-    // Bind image texture
-    glBindTexture(GL_TEXTURE_2D, image);
+static void nvgluReadPixels(NVGcontext* ctx, NVGLUframebuffer* fb, int x, int y, int width, int height, int total_height, void* data) {
+    // Bind the framebuffer associated with the NVGLUframebuffer
+    glBindFramebuffer(GL_FRAMEBUFFER, fb->fbo);
 
-    // Set the pixel transfer parameters
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    // Set the pixel storage alignment (important for correct data reads)
     glPixelStorei(GL_PACK_ALIGNMENT, 1);
 
-    // Read the pixels from the texture
-    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    glReadPixels(x, total_height - y - height, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
 
-    // Unbind texture
-    glBindTexture(GL_TEXTURE_2D, 0);
+    // Unbind the framebuffer to restore the default state
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 
