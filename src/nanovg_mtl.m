@@ -475,7 +475,7 @@ NVGcontext* mnvgCreateContext(void* view, int flags, int width, int height) {
     id<MTLDevice> metalDevice = MTLCreateSystemDefaultDevice();
     if (!metalDevice) return NULL;
 
-    MTLPixelFormat pixelFormat = MTLPixelFormatBGRA8Unorm; // RGBA pixel format doesn't always work on old macs
+    MTLPixelFormat pixelFormat = MTLPixelFormatBGRA8Unorm;
 
     [metalLayer setPixelFormat:pixelFormat];
     [metalLayer setDevice: metalDevice];
@@ -493,7 +493,6 @@ NVGcontext* mnvgCreateContext(void* view, int flags, int width, int height) {
     id<MTLDevice> metalDevice = MTLCreateSystemDefaultDevice();
     if (!metalDevice) return NULL;
 
-    // RGBA format would be preferred, but not all macOS versions support this
     MTLPixelFormat pixelFormat = MTLPixelFormatBGRA8Unorm;
 
     ((__bridge NSView*) view).layer = metalLayer;
@@ -562,6 +561,7 @@ MNVGframebuffer* mnvgCreateFramebuffer(NVGcontext* ctx, int width,
     framebuffer->image = nvgCreateImageRGBA(ctx, width, height,
                                             imageFlags | NVG_IMAGE_PREMULTIPLIED,
                                             NULL);
+    
     framebuffer->ctx = ctx;
     return framebuffer;
 }
@@ -1482,9 +1482,14 @@ error:
         drawable = _metalLayer.nextDrawable;
         colorTexture = drawable.texture;
     }
+    
+    scissorRect.x = MAX(0, scissorRect.x);
+    scissorRect.y = MAX(0, scissorRect.y);
+    scissorRect.width = MIN(textureSize.x, scissorRect.width);
+    scissorRect.height = MIN(textureSize.y, scissorRect.height);
 
     _renderEncoder = [self renderCommandEncoderWithColorTexture:colorTexture];
-    [_renderEncoder setScissorRect:scissorRect];
+    [_renderEncoder setScissorRect: scissorRect];
     
     [self updateRenderPipelineStatesForBlend:_blendFunc
                                  pixelFormat:colorTexture.pixelFormat];

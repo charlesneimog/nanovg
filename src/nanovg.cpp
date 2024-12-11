@@ -1129,10 +1129,10 @@ NVGpaint nvgImageAlphaPattern(NVGcontext* ctx,
     return p;
 }
 
-void nvgGlobalScissor(NVGcontext* ctx, float x, float y, float w, float h)
+void nvgGlobalScissor(NVGcontext* ctx, int x, int y, int w, int h)
 {
     NVGstate* state = nvg__getState(ctx);
-    ctx->globalScissor = {x, y, w, h};
+    ctx->globalScissor = {static_cast<float>(x), static_cast<float>(y), static_cast<float>(w), static_cast<float>(h)};
 }
 
 // Scissoring

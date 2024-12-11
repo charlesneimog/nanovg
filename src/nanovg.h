@@ -566,7 +566,7 @@ void nvgSmoothGlow(NVGcontext* ctx, float x, float y, float w, float h, NVGcolor
 // user interface cases like rendering a text edit or a timeline.
 
 
-void nvgGlobalScissor(NVGcontext* ctx, float x, float y, float w, float h);
+void nvgGlobalScissor(NVGcontext* ctx, int x, int y, int w, int h);
 
 // Sets the current scissor rectangle.
 // The scissor rectangle is transformed by the current transform.
