@@ -298,8 +298,7 @@ stencilOnlyPipelineState;
 // Keeps the weak reference to the currently binded framebuffer.
 MNVGframebuffer* s_framebuffer = NULL;
 
-const MTLResourceOptions kMetalBufferOptions = \
-(MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeShared);
+const MTLResourceOptions kMetalBufferOptions = (MTLResourceCPUCacheModeWriteCombined | MTLResourceStorageModeShared);
 
 #if TARGET_OS_SIMULATOR
 const MTLPixelFormat kStencilFormat = MTLPixelFormatDepth32Float_Stencil8;
@@ -517,7 +516,7 @@ NVGcontext* nvgCreateMTL(void* metalLayer, int flags) {
 #if __aarch64__ && !TARGET_OS_SIMULATOR
     mtl.fragSize = sizeof(MNVGfragUniforms);
 #else
-    mtl.fragSize = 128;
+    mtl.fragSize = 256;
 #endif
     mtl.lastUniformOffset = 0;
     mtl.lastBoundTexture = -1;
@@ -552,8 +551,7 @@ void mnvgBindFramebuffer(MNVGframebuffer* framebuffer) {
 
 MNVGframebuffer* mnvgCreateFramebuffer(NVGcontext* ctx, int width,
                                        int height, int imageFlags) {
-    MNVGframebuffer* framebuffer = \
-    (MNVGframebuffer*)malloc(sizeof(MNVGframebuffer));
+    MNVGframebuffer* framebuffer = (MNVGframebuffer*)malloc(sizeof(MNVGframebuffer));
     if (framebuffer == NULL)
         return NULL;
 
@@ -700,8 +698,7 @@ void* mnvgDevice(NVGcontext* ctx) {
     int ret = 0;
     MNVGrenderData* renderData = _buffers.renderData;
     if (renderData->nindexes + n > renderData->cindexes) {
-        int cindexes = nvg__maxi(renderData->nindexes + n, 4096) \
-        + renderData->cindexes / 2;
+        int cindexes = nvg__maxi(renderData->nindexes + n, 4096) + renderData->cindexes / 2;
         id<MTLBuffer> buffer = [_metalLayer.device
                                 newBufferWithLength:(_indexSize * cindexes)
                                 options:kMetalBufferOptions];
@@ -937,15 +934,13 @@ void* mnvgDevice(NVGcontext* ctx) {
 
 - (id<MTLRenderCommandEncoder>)renderCommandEncoderWithColorTexture:
 (id<MTLTexture>)colorTexture {
-    MTLRenderPassDescriptor *descriptor = \
-    [MTLRenderPassDescriptor renderPassDescriptor];
+    MTLRenderPassDescriptor *descriptor = [MTLRenderPassDescriptor renderPassDescriptor];
     if (descriptor == nil) {
         return nil;
     }
 
     descriptor.colorAttachments[0].clearColor = _clearColor;
-    descriptor.colorAttachments[0].loadAction = \
-    _clearBufferOnFlush ? MTLLoadActionClear : MTLLoadActionLoad;
+    descriptor.colorAttachments[0].loadAction = _clearBufferOnFlush ? MTLLoadActionClear : MTLLoadActionLoad;
     descriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
     descriptor.colorAttachments[0].texture = colorTexture;
     _clearBufferOnFlush = NO;
@@ -1089,8 +1084,7 @@ void* mnvgDevice(NVGcontext* ctx) {
     _blendFunc->dstAlpha = MTLBlendFactorOneMinusSourceAlpha;
 
     // Initializes stencil states.
-    MTLDepthStencilDescriptor* stencilDescriptor = \
-    [MTLDepthStencilDescriptor new];
+    MTLDepthStencilDescriptor* stencilDescriptor = [MTLDepthStencilDescriptor new];
 
     // Default stencil state.
     _defaultStencilState = [device
@@ -1100,13 +1094,11 @@ void* mnvgDevice(NVGcontext* ctx) {
     // Fill shape stencil.
     MTLStencilDescriptor* frontFaceStencilDescriptor = [MTLStencilDescriptor new];
     frontFaceStencilDescriptor.stencilCompareFunction = MTLCompareFunctionAlways;
-    frontFaceStencilDescriptor.depthStencilPassOperation = \
-    MTLStencilOperationIncrementWrap;
+    frontFaceStencilDescriptor.depthStencilPassOperation = MTLStencilOperationIncrementWrap;
 
     MTLStencilDescriptor* backFaceStencilDescriptor = [MTLStencilDescriptor new];
     backFaceStencilDescriptor.stencilCompareFunction = MTLCompareFunctionAlways;
-    backFaceStencilDescriptor.depthStencilPassOperation = \
-    MTLStencilOperationDecrementWrap;
+    backFaceStencilDescriptor.depthStencilPassOperation = MTLStencilOperationDecrementWrap;
 
     stencilDescriptor.depthCompareFunction = MTLCompareFunctionAlways;
     stencilDescriptor.backFaceStencil = backFaceStencilDescriptor;
@@ -1118,8 +1110,7 @@ void* mnvgDevice(NVGcontext* ctx) {
     frontFaceStencilDescriptor.stencilCompareFunction = MTLCompareFunctionEqual;
     frontFaceStencilDescriptor.stencilFailureOperation = MTLStencilOperationKeep;
     frontFaceStencilDescriptor.depthFailureOperation = MTLStencilOperationKeep;
-    frontFaceStencilDescriptor.depthStencilPassOperation = \
-    MTLStencilOperationZero;
+    frontFaceStencilDescriptor.depthStencilPassOperation = MTLStencilOperationZero;
 
     stencilDescriptor.backFaceStencil = nil;
     stencilDescriptor.frontFaceStencil = frontFaceStencilDescriptor;
@@ -1127,12 +1118,10 @@ void* mnvgDevice(NVGcontext* ctx) {
                                   newDepthStencilStateWithDescriptor:stencilDescriptor];
 
     // Fill stencil.
-    frontFaceStencilDescriptor.stencilCompareFunction = \
-    MTLCompareFunctionNotEqual;
+    frontFaceStencilDescriptor.stencilCompareFunction = MTLCompareFunctionNotEqual;
     frontFaceStencilDescriptor.stencilFailureOperation = MTLStencilOperationZero;
     frontFaceStencilDescriptor.depthFailureOperation = MTLStencilOperationZero;
-    frontFaceStencilDescriptor.depthStencilPassOperation = \
-    MTLStencilOperationZero;
+    frontFaceStencilDescriptor.depthStencilPassOperation = MTLStencilOperationZero;
 
     stencilDescriptor.backFaceStencil = nil;
     stencilDescriptor.frontFaceStencil = frontFaceStencilDescriptor;
@@ -1143,8 +1132,7 @@ void* mnvgDevice(NVGcontext* ctx) {
     frontFaceStencilDescriptor.stencilCompareFunction = MTLCompareFunctionEqual;
     frontFaceStencilDescriptor.stencilFailureOperation = MTLStencilOperationKeep;
     frontFaceStencilDescriptor.depthFailureOperation = MTLStencilOperationKeep;
-    frontFaceStencilDescriptor.depthStencilPassOperation = \
-    MTLStencilOperationIncrementClamp;
+    frontFaceStencilDescriptor.depthStencilPassOperation = MTLStencilOperationIncrementClamp;
 
     stencilDescriptor.backFaceStencil = nil;
     stencilDescriptor.frontFaceStencil = frontFaceStencilDescriptor;
@@ -1152,8 +1140,7 @@ void* mnvgDevice(NVGcontext* ctx) {
                                 newDepthStencilStateWithDescriptor:stencilDescriptor];
 
     // Stroke anti-aliased stencil.
-    frontFaceStencilDescriptor.depthStencilPassOperation = \
-    MTLStencilOperationKeep;
+    frontFaceStencilDescriptor.depthStencilPassOperation = MTLStencilOperationKeep;
 
     stencilDescriptor.backFaceStencil = nil;
     stencilDescriptor.frontFaceStencil = frontFaceStencilDescriptor;
@@ -1164,8 +1151,7 @@ void* mnvgDevice(NVGcontext* ctx) {
     frontFaceStencilDescriptor.stencilCompareFunction = MTLCompareFunctionAlways;
     frontFaceStencilDescriptor.stencilFailureOperation = MTLStencilOperationZero;
     frontFaceStencilDescriptor.depthFailureOperation = MTLStencilOperationZero;
-    frontFaceStencilDescriptor.depthStencilPassOperation = \
-    MTLStencilOperationZero;
+    frontFaceStencilDescriptor.depthStencilPassOperation = MTLStencilOperationZero;
 
     stencilDescriptor.backFaceStencil = nil;
     stencilDescriptor.frontFaceStencil = frontFaceStencilDescriptor;
@@ -1818,11 +1804,9 @@ error:
         return;
     }
 
-    MTLRenderPipelineDescriptor* pipelineStateDescriptor = \
-    [MTLRenderPipelineDescriptor new];
+    MTLRenderPipelineDescriptor* pipelineStateDescriptor = [MTLRenderPipelineDescriptor new];
 
-    MTLRenderPipelineColorAttachmentDescriptor* colorAttachmentDescriptor = \
-    pipelineStateDescriptor.colorAttachments[0];
+    MTLRenderPipelineColorAttachmentDescriptor* colorAttachmentDescriptor = pipelineStateDescriptor.colorAttachments[0];
     colorAttachmentDescriptor.pixelFormat = pixelFormat;
     pipelineStateDescriptor.stencilAttachmentPixelFormat = kStencilFormat;
     pipelineStateDescriptor.fragmentFunction = _fragmentFunction;
