@@ -540,7 +540,7 @@ int nvg__renderCreate(void* uptr)
 #if defined NANOVG_GL3
     shaderHeader << "#version 150 core\n";
 #elif defined NANOVG_GLES3
-    shaderHeader << "#version 310 es\n";
+    shaderHeader << "#version 300 es\n";
 #endif
 
     shaderHeader << "#define NANOVG_GL3 1\n"
