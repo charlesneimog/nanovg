@@ -37,30 +37,132 @@ void nvgluDeleteFramebuffer(NVGLUframebuffer* fb);
 
 static GLint defaultFBO = -1;
 
-void nvgluBlitFramebuffer(NVGcontext* ctx, NVGLUframebuffer* fb, int x, int y, int w, int h)
-{
+std::unordered_map<NVGcontext*, std::tuple<GLuint, GLuint, GLuint>> blitShaders;
+
+std::tuple<GLuint, GLuint, GLuint> getBlitShaderProgram(NVGcontext* ctx) {
+    if(blitShaders.contains(ctx) && glIsProgram(std::get<0>(blitShaders[ctx]))) return blitShaders[ctx];
+        
+    const char* vertexShaderSrc =
+        "#version 330 core\n"
+        "layout (location = 0) in vec2 aPos;\n"
+        "layout (location = 1) in vec2 aTexCoord;\n"
+        "out vec2 TexCoord;\n"
+        "void main() {\n"
+        "    TexCoord = aTexCoord;\n"
+        "    gl_Position = vec4(aPos, 0.0, 1.0);\n"
+        "}";
+
+    const char* fragmentShaderSrc =
+        "#version 330 core\n"
+        "out vec4 FragColor;\n"
+        "in vec2 TexCoord;\n"
+        "uniform sampler2D screenTexture;\n"
+        "void main() {\n"
+        "    FragColor = texture(screenTexture, TexCoord);\n"
+        "}";
+    
+    GLint success;
+    GLchar infoLog[512];
+
+    // Compile Vertex Shader
+    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertexShader, 1, &vertexShaderSrc, NULL);
+    glCompileShader(vertexShader);
+    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
+        printf("Vertex Shader Compilation Failed:\n%s\n", infoLog);
+    }
+
+    // Compile Fragment Shader
+    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragmentShader, 1, &fragmentShaderSrc, NULL);
+    glCompileShader(fragmentShader);
+    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
+        printf("Fragment Shader Compilation Failed:\n%s\n", infoLog);
+    }
+
+    // Link Shader Program
+    GLuint shaderProgram = glCreateProgram();
+    glAttachShader(shaderProgram, vertexShader);
+    glAttachShader(shaderProgram, fragmentShader);
+    glLinkProgram(shaderProgram);
+    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+    if (!success) {
+        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
+        printf("Shader Program Linking Failed:\n%s\n", infoLog);
+    }
+
+    // Cleanup
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
+    float quadVertices[] = {
+        // Positions    // TexCoords
+        -1.0f,  1.0f,  0.0f, 1.0f, // Top-left
+        -1.0f, -1.0f,  0.0f, 0.0f, // Bottom-left
+         1.0f, -1.0f,  1.0f, 0.0f, // Bottom-right
+         1.0f, -1.0f,  1.0f, 0.0f, // Bottom-right
+         1.0f,  1.0f,  1.0f, 1.0f, // Top-right
+        -1.0f,  1.0f,  0.0f, 1.0f  // Top-left
+    };
+
+    GLuint quadVAO, quadVBO;
+    glGenVertexArrays(1, &quadVAO);
+    glGenBuffers(1, &quadVBO);
+    glBindVertexArray(quadVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), quadVertices, GL_STATIC_DRAW);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+
+    blitShaders[ctx] = {shaderProgram, quadVAO, quadVBO};
+    return {shaderProgram, quadVAO, quadVBO};
+}
+
+// Function to blit framebuffer using a shader
+void nvgluBlitFramebuffer(NVGcontext* ctx, NVGLUframebuffer* fb, int x, int y, int w, int h) {
+    auto [shaderProgram, quadVAO, quadVBO] = getBlitShaderProgram(ctx);
     glDisable(GL_SCISSOR_TEST);
     glDisable(GL_BLEND);
     glDisable(GL_CULL_FACE);
 
-    int x2 = x + w;
-    int y2 = y + h;
-    glBindFramebuffer(GL_READ_FRAMEBUFFER, fb->fbo);
-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, defaultFBO);
-    glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-    glBlitFramebuffer(x, y, x2, y2, x, y, x2, y2, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-    glFinish();
-
-    GLenum error = glGetError();
-    if (error != GL_NO_ERROR) {
-        printf("OpenGL Error after glBlitFramebuffer: %d\n", error);
-    }
-
+    // Bind default framebuffer for rendering
     glBindFramebuffer(GL_FRAMEBUFFER, defaultFBO);
+    glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
+    // Use the shader program
+    glUseProgram(shaderProgram);
+
+    // Bind the framebuffer texture
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, fb->texture);
+    glUniform1i(glGetUniformLocation(shaderProgram, "screenTexture"), 0);
+
+    // Draw the fullscreen quad
+    glBindVertexArray(quadVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+
+    // Restore OpenGL states
     glEnable(GL_SCISSOR_TEST);
     glEnable(GL_BLEND);
     glEnable(GL_CULL_FACE);
+
+    // Error check
+    GLenum error = glGetError();
+    if (error != GL_NO_ERROR) {
+        printf("OpenGL Error after shader quad blit: %d\n", error);
+    }
 }
 
 NVGLUframebuffer* nvgluCreateFramebuffer(NVGcontext* ctx, int w, int h, int imageFlags)
