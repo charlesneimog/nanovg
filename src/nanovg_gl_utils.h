@@ -61,6 +61,7 @@ std::tuple<GLuint, GLuint, GLuint> getBlitShaderProgram(NVGcontext* ctx) {
         "#version 150 core\n"
     #elif defined NANOVG_GLES3
         "#version 300 es\n"
+        "precision highp float;\n"
     #endif
         "out vec4 FragColor;\n"
         "in vec2 TexCoord;\n"
