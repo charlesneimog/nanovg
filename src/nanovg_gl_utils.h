@@ -41,9 +41,13 @@ std::unordered_map<NVGcontext*, std::tuple<GLuint, GLuint, GLuint>> blitShaders;
 
 std::tuple<GLuint, GLuint, GLuint> getBlitShaderProgram(NVGcontext* ctx) {
     if(blitShaders.contains(ctx) && glIsProgram(std::get<0>(blitShaders[ctx]))) return blitShaders[ctx];
-        
+
     const char* vertexShaderSrc =
-        "#version 330 core\n"
+    #if defined NANOVG_GL3
+        "#version 150 core\n"
+    #elif defined NANOVG_GLES3
+        "#version 300 es\n"
+    #endif
         "layout (location = 0) in vec2 aPos;\n"
         "layout (location = 1) in vec2 aTexCoord;\n"
         "out vec2 TexCoord;\n"
@@ -53,14 +57,18 @@ std::tuple<GLuint, GLuint, GLuint> getBlitShaderProgram(NVGcontext* ctx) {
         "}";
 
     const char* fragmentShaderSrc =
-        "#version 330 core\n"
+    #if defined NANOVG_GL3
+        "#version 150 core\n"
+    #elif defined NANOVG_GLES3
+        "#version 300 es\n"
+    #endif
         "out vec4 FragColor;\n"
         "in vec2 TexCoord;\n"
         "uniform sampler2D screenTexture;\n"
         "void main() {\n"
         "    FragColor = texture(screenTexture, TexCoord);\n"
         "}";
-    
+
     GLint success;
     GLchar infoLog[512];
 
@@ -118,7 +126,7 @@ std::tuple<GLuint, GLuint, GLuint> getBlitShaderProgram(NVGcontext* ctx) {
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-    
+
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
 
