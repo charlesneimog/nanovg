@@ -48,8 +48,8 @@ std::tuple<GLuint, GLuint, GLuint> getBlitShaderProgram(NVGcontext* ctx) {
     #elif defined NANOVG_GLES3
         "#version 300 es\n"
     #endif
-        "layout (location = 0) in vec2 aPos;\n"
-        "layout (location = 1) in vec2 aTexCoord;\n"
+        "in vec2 aPos;\n"
+        "in vec2 aTexCoord;\n"
         "out vec2 TexCoord;\n"
         "void main() {\n"
         "    TexCoord = aTexCoord;\n"
@@ -97,6 +97,12 @@ std::tuple<GLuint, GLuint, GLuint> getBlitShaderProgram(NVGcontext* ctx) {
     GLuint shaderProgram = glCreateProgram();
     glAttachShader(shaderProgram, vertexShader);
     glAttachShader(shaderProgram, fragmentShader);
+
+#if defined NANOVG_GL3
+    glBindAttribLocation(shaderProgram, 0, "aPos");
+    glBindAttribLocation(shaderProgram, 1, "aTexCoord");
+#endif
+
     glLinkProgram(shaderProgram);
     glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
     if (!success) {
