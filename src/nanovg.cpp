@@ -132,6 +132,7 @@ struct StrokeCacheLine {
     std::vector<NVGpath> paths;
     float currentTransform[6];
     float lineLength;
+    float bounds[4];
 };
 
 using StrokeCache = std::unordered_map<uint32_t, StrokeCacheLine>;
@@ -2642,6 +2643,7 @@ int32_t nvgSavePath(NVGcontext* ctx, uint32_t pathId)
     auto cacheEntry = StrokeCacheLine();
 
     cacheEntry.lineLength = ctx->currentLineLength;
+    memcpy(cacheEntry.bounds, ctx->cache->bounds, 4*sizeof(float));
     
     for (int i = 0; i < ctx->cache->npaths; i++) {
       auto& p = ctx->cache->paths[i];
@@ -2739,10 +2741,12 @@ int nvgFillCachedPath(NVGcontext* ctx, uint32_t pathId)
               nvgTransformPoint(&cachedPath.fill[j].x, &cachedPath.fill[j].y, totalTransform, cachedPath.fill[j].x, cachedPath.fill[j].y);
           }
         }
+        nvgTransformPoint(&cacheEntry.bounds[0], &cacheEntry.bounds[1], totalTransform, cacheEntry.bounds[0], cacheEntry.bounds[1]);
+        nvgTransformPoint(&cacheEntry.bounds[2], &cacheEntry.bounds[3], totalTransform, cacheEntry.bounds[2], cacheEntry.bounds[3]);
         
         memcpy(cacheEntry.currentTransform, state->xform, 6*sizeof(float));
 
-        nvg__renderFill(ctx->backend, &fillPaint, state->compositeOperation, &state->scissor, ctx->fringeWidth, ctx->cache->bounds, cacheEntry.paths.data(), (int)cacheEntry.paths.size());
+        nvg__renderFill(ctx->backend, &fillPaint, state->compositeOperation, &state->scissor, ctx->fringeWidth, cacheEntry.bounds, cacheEntry.paths.data(), (int)cacheEntry.paths.size());
         return 1;
     }
     
