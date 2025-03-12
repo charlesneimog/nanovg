@@ -61,7 +61,7 @@ void* nvg__getUptr(void* ctx);
   #define nvgClearWithColor(nvg, col) mnvgClearWithColor(nvg, col)
   #define nvgReadPixels(nvg, image, x, y, w, h, total_h, data) mnvgReadPixels(nvg, image, x, y, w, h, data)
   #define nvgBlitFramebuffer(nvg, fb, x, y, w, h) mnvgBlitFramebuffer(nvg, fb, x, y, w, h)
-  #define nvgMaxTextureSize(size) size = 16384
+  #define nvgMaxTextureSize(size) size = 8192
   #define NVGframebuffer MNVGframebuffer
 #endif
 #if defined NANOVG_GL_IMPLEMENTATION
