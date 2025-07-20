@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(BUILD_EXAMPLES "Build examples" OFF)
+
 if(NOT EMSCRIPTEN)
   message(FATAL_ERROR "Only emscripten supported")
 endif()
@@ -16,6 +17,10 @@ add_library(
   ${CMAKE_CURRENT_SOURCE_DIR}/src/nanovg.h
   ${CMAKE_CURRENT_SOURCE_DIR}/src/nanovg_gl.h
   ${CMAKE_CURRENT_SOURCE_DIR}/src/nanovg_gl_utils.h)
+
+target_compile_options(nanovg PUBLIC -pthread -matomics -mbulk-memory)
+target_link_options(nanovg PUBLIC -pthread -matomics -mbulk-memory)
+
 
 set(STB_DIR "${CMAKE_CURRENT_BINARY_DIR}/stb")
 file(MAKE_DIRECTORY ${STB_DIR})
