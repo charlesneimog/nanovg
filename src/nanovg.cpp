@@ -61,8 +61,6 @@
 
 #define CACHE (*ctx->strokeCache)
 
-extern "C" {
-
 enum NVGcommands {
 	NVG_MOVETO = 0,
 	NVG_LINETO = 1,
@@ -3477,7 +3475,5 @@ void nvgTextMetrics(NVGcontext* ctx, float* ascender, float* descender, float* l
 	if (lineh != NULL)
 		*lineh *= invscale;
 }
-  
-} // extern "C"
 
 // vim: ft=c nu noet ts=4

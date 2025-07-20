@@ -19,10 +19,6 @@
 #ifndef NANOVG_H
 #define NANOVG_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define NVG_PI 3.14159265358979323846264338327f
 
 #ifdef _MSC_VER
@@ -800,10 +796,6 @@ void nvgDebugDumpPathCache(NVGcontext* ctx);
 #endif
 
 #define NVG_NOTUSED(v) for (;;) { (void)(1 ? (void)0 : ( (void)(v) ) ); break; }
-
-#ifdef __cplusplus
-}
-#endif
 
 #if defined NANOVG_METAL_IMPLEMENTATION
 #include "nanovg_mtl.h"

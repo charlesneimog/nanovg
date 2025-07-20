@@ -1,11 +1,12 @@
 cmake_minimum_required(VERSION 3.15)
 cmake_policy(SET CMP0063 NEW)
 
-project(nanovg)
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+project(nanovg)
 
 option(BUILD_EXAMPLES "Build examples" OFF)
+message(WARNING ${BUILD_EXAMPLES})
 
 if(NOT EMSCRIPTEN)
   message(FATAL_ERROR "Only emscripten supported")
@@ -36,7 +37,7 @@ file(
 
 target_include_directories(nanovg PUBLIC ${STB_DIR})
 
-if(BUILD_EXAMPLES AND EMSCRIPTEN)
+if(${BUILD_EXAMPLES})
   add_executable(main ${CMAKE_CURRENT_SOURCE_DIR}/example/example_webgl.cpp)
   target_include_directories(main PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
   target_link_options(main PUBLIC -sUSE_WEBGL2=1 -sMIN_WEBGL_VERSION=2
