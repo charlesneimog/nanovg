@@ -139,6 +139,8 @@ struct GLNVGtexture {
     int width, height;
     int type;
     int flags;
+    int initialized;
+
 };
 typedef struct GLNVGtexture GLNVGtexture;
 
@@ -887,9 +889,9 @@ static int glnvg__renderCreateTexture(void *uptr, int type, int w, int h, int im
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
     } else {
 #ifdef __EMSCRIPTEN__
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, w, h, 0, GL_RED, GL_UNSIGNED_BYTE, initData);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, w, h, 0, GL_RED, GL_UNSIGNED_BYTE, data);
 #else
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, w, h, 0, GL_RED, GL_UNSIGNED_BYTE, initData);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, w, h, 0, GL_RED, GL_UNSIGNED_BYTE, data);
 #endif
     }
 
@@ -979,12 +981,13 @@ static int glnvg__renderUpdateTexture(void *uptr, int image, int x, int y, int w
 
     if (tex->type == NVG_TEXTURE_RGBA) {
         glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, w, h, GL_RGBA, GL_UNSIGNED_BYTE, data);
-    } else
+    } else {
 #if defined(NANOVG_GLES2) || defined(NANOVG_GL2)
         glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, w, h, GL_LUMINANCE, GL_UNSIGNED_BYTE, data);
 #else
         glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, w, h, GL_RED, GL_UNSIGNED_BYTE, data);
 #endif
+  }
 
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
 #ifndef NANOVG_GLES2
