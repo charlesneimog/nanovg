@@ -1,0 +1,8 @@
+[
+{
+  "directory": "/home/neimog/Documents/Git/nanovg/build",
+  "command": "/home/neimog/.local/share/pd4web/emsdk/upstream/emscripten/em++ -DNANOVG_GLES3_IMPLEMENTATION=1 @CMakeFiles/nanovg.dir/includes_CXX.rsp -O3 -DNDEBUG -std=gnu++20 -pthread -matomics -mbulk-memory -o CMakeFiles/nanovg.dir/src/nanovg.cpp.o -c /home/neimog/Documents/Git/nanovg/src/nanovg.cpp",
+  "file": "/home/neimog/Documents/Git/nanovg/src/nanovg.cpp",
+  "output": "CMakeFiles/nanovg.dir/src/nanovg.cpp.o"
+}
+]

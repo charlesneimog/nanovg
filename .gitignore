@@ -27,3 +27,4 @@ build/*
 ## xcode specific
 *xcuserdata*
 .cache/clangd/index
+compile_commands.json
