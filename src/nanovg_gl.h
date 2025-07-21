@@ -886,10 +886,28 @@ static int glnvg__renderCreateTexture(void *uptr, int type, int w, int h, int im
 #endif
 
     if (type == NVG_TEXTURE_RGBA) {
+#ifdef __EMSCRIPTEN__
+        // WebGL requires textures to be fully initialized to avoid lazy initialization warnings
+        if (data == NULL) {
+            unsigned char* zeroData = (unsigned char*)calloc(w * h * 4, sizeof(unsigned char));
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, zeroData);
+            free(zeroData);
+        } else {
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        }
+#else
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+#endif
     } else {
 #ifdef __EMSCRIPTEN__
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, w, h, 0, GL_RED, GL_UNSIGNED_BYTE, data);
+        // WebGL requires textures to be fully initialized to avoid lazy initialization warnings
+        if (data == NULL) {
+            unsigned char* zeroData = (unsigned char*)calloc(w * h, sizeof(unsigned char));
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, w, h, 0, GL_RED, GL_UNSIGNED_BYTE, zeroData);
+            free(zeroData);
+        } else {
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, w, h, 0, GL_RED, GL_UNSIGNED_BYTE, data);
+        }
 #else
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, w, h, 0, GL_RED, GL_UNSIGNED_BYTE, data);
 #endif
