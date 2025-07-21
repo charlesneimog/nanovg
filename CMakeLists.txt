@@ -18,9 +18,9 @@ add_library(
   ${CMAKE_CURRENT_SOURCE_DIR}/src/nanovg_gl.h
   ${CMAKE_CURRENT_SOURCE_DIR}/src/nanovg_gl_utils.h)
 
-target_compile_options(nanovg PUBLIC -pthread -matomics -mbulk-memory)
-target_link_options(nanovg PUBLIC -pthread -matomics -mbulk-memory)
-
+target_compile_definitions(nanovg PUBLIC FONS_USE_FREETYPE)
+target_compile_options(nanovg PUBLIC -pthread -matomics -mbulk-memory --use-port=freetype) 
+target_link_options(nanovg PUBLIC -pthread -matomics -mbulk-memory --use-port=freetype) 
 
 set(STB_DIR "${CMAKE_CURRENT_BINARY_DIR}/stb")
 file(MAKE_DIRECTORY ${STB_DIR})
@@ -35,6 +35,8 @@ file(
   STATUS status_truetype)
 
 target_include_directories(nanovg PUBLIC ${STB_DIR})
+
+
 
 if(${BUILD_EXAMPLES})
   add_executable(main ${CMAKE_CURRENT_SOURCE_DIR}/example/example_webgl.cpp)
