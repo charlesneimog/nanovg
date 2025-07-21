@@ -6,7 +6,6 @@ set(CMAKE_CXX_STANDARD 20)
 project(nanovg)
 
 option(BUILD_EXAMPLES "Build examples" OFF)
-message(WARNING ${BUILD_EXAMPLES})
 
 if(NOT EMSCRIPTEN)
   message(FATAL_ERROR "Only emscripten supported")
