@@ -22,22 +22,6 @@ target_compile_definitions(nanovg PUBLIC FONS_USE_FREETYPE)
 target_compile_options(nanovg PUBLIC -pthread -matomics -mbulk-memory --use-port=freetype) 
 target_link_options(nanovg PUBLIC -pthread -matomics -mbulk-memory --use-port=freetype) 
 
-set(STB_DIR "${CMAKE_CURRENT_BINARY_DIR}/stb")
-file(MAKE_DIRECTORY ${STB_DIR})
-file(
-  DOWNLOAD
-  "https://raw.githubusercontent.com/nothings/stb/refs/heads/master/stb_image.h"
-  "${STB_DIR}/stb_image.h" STATUS status_image)
-file(
-  DOWNLOAD
-  "https://raw.githubusercontent.com/nothings/stb/refs/heads/master/stb_truetype.h"
-  "${STB_DIR}/stb_truetype.h"
-  STATUS status_truetype)
-
-target_include_directories(nanovg PUBLIC ${STB_DIR})
-
-
-
 if(${BUILD_EXAMPLES})
   add_executable(main ${CMAKE_CURRENT_SOURCE_DIR}/example/example_webgl.cpp)
   target_include_directories(main PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
